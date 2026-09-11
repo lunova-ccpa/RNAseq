@@ -24,7 +24,40 @@ echo "=========================================="
 # =============================================================================
 # STEP 0: Check Input Files from Staging
 # =============================================================================
+Bootstrap: docker
+From: condaforge/miniforge3:latest  # creating container recipe
 
+%post
+    # Setting up Bioconda
+    conda config --add channels bioconda
+    conda config --add channels conda-forge
+    conda config --set channel_priority strict
+
+    # Install packages directly
+    conda install samtools hisat2 # 
+# hello-world.sub
+apptainer build hisat2.sif hisat2.def
+
+mv hisat2.sif /staging/c/ccaguilar/hisat2.sif
+  
+container_image = osdf:///chtc/staging/c/ccaguilar/hisat2.sif #calling .sif files for each segment - create all of them at the begining 
+shell = ./align.sh mm39 $sample #what condor is going to run once the job starts up 
+
+log = align_$(Cluster)_$(Process).log
+error = align_$(Cluster)_$(Process).err
+output = align_$(Cluster)_$(Process).out
+   
+# Transfer our executable script
+transfer_input_files = align.sh
+   
+# Requirements (e.g., operating system) your job needs, what amount of
+# compute resources each job will need on the computer where it runs.
+request_cpus = 8
+request_memory = 32GB
+request_disk = 50GB
+   
+# Run 3 instances of our job:
+queue sample from listOfSamples.txt
 echo ""
 echo "[STEP 0] Checking input files in staging area..."
 
@@ -98,23 +131,21 @@ echo "Trimming results saved to ${SAMPLE}_fastp.json"
 # ======================================================================================
 # STEP 2: Align with HISAT2
 # ======================================================================================
-
+INDEX_PREFIX="$1"
+SAMPLE="$2"
 echo ""
 echo "[STEP 2] Running HISAT2 alignment..."
-echo "Command: hisat2 -x ${INDEX_PREFIX} -1 ${SAMPLE}_1.trimmed.fq.gz -2 ${SAMPLE}_2.trimmed.fq.gz -S ${SAMPLE}.sam -p ${NUM_THREADS}"
+echo "Command: hisat2 -x ${INDEX_PREFIX} -1 ${SAMPLE}_1.trimmed.fq.gz -2 ${SAMPLE}_2.trimmed.fq.gz -S ${SAMPLE}.sam -p 8"
 
 hisat2 -x ${INDEX_PREFIX} \
   -1 ${SAMPLE}_1.trimmed.fq.gz \
   -2 ${SAMPLE}_2.trimmed.fq.gz \
   -S ${SAMPLE}.sam \
-  -p ${NUM_THREADS}
+  -p 8
 
 ALIGN_STATUS=$?
 echo "HISAT2 alignment completed with status: $ALIGN_STATUS"
 
-# Clean up trimmed FASTQs to save space
-rm -f ${SAMPLE}_1.trimmed.fq.gz ${SAMPLE}_2.trimmed.fq.gz
-echo "Cleaned up trimmed FASTQ files"
 
 # =========================================================================================
 # STEP 3: Convert SAM to BAM
