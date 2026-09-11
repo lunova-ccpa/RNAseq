@@ -1,0 +1,22 @@
+# =============================================================================
+# STEP 1: Trim with fastp
+# =============================================================================
+
+echo ""
+echo "[STEP 1] Trimming with fastp..."
+echo "Command: fastp -i ${STAGING_IN}/RawData/${SAMPLE}/${SAMPLE}_1.fq.gz -I ${STAGING_IN}/RawData/${SAMPLE}/${SAMPLE}_2.fq.gz -o ${SAMPLE}_1.trimmed.fq.gz -O ${SAMPLE}_2.trimmed.fq.gz -w ${NUM_THREADS} -q 15 -u 40"
+
+fastp \
+  -i ${STAGING_IN}/RawData/${SAMPLE}/${SAMPLE}_1.fq.gz \
+  -I ${STAGING_IN}/RawData/${SAMPLE}/${SAMPLE}_2.fq.gz \
+  -o ${SAMPLE}_1.trimmed.fq.gz \
+  -O ${SAMPLE}_2.trimmed.fq.gz \
+  -w ${NUM_THREADS} \
+  -q 15 \
+  -u 40 \
+  --html ${SAMPLE}_fastp.html \
+  --json ${SAMPLE}_fastp.json
+
+TRIM_STATUS=$?
+echo "fastp trimming completed with status: $TRIM_STATUS"
+echo "Trimming results saved to ${SAMPLE}_fastp.json"
