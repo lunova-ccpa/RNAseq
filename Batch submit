@@ -1,0 +1,97 @@
+## Make a new folder
+mkdir -p /staging/c/ccaguilar/trimmed/
+
+## Verify it exists
+ls -la /staging/c/ccaguilar/ | grep trimmed
+
+## Now revert Trim.sh back to writing directly to staging
+cat > Trim.sh << 'EOF'
+#!/bin/bash
+
+SAMPLE="$1"
+STAGING_IN="/staging/c/ccaguilar"
+STAGING_OUT="/staging/c/ccaguilar/trimmed"
+
+echo "[TRIM] Processing sample: $SAMPLE"
+
+trimmomatic PE -threads 4 -phred33 \
+  ${STAGING_IN}/RawData/${SAMPLE}_1.fq.gz \
+  ${STAGING_IN}/RawData/${SAMPLE}_2.fq.gz \
+  ${STAGING_OUT}/${SAMPLE}_1.paired.trimmed.fq.gz \
+  ${STAGING_OUT}/${SAMPLE}_1.unpaired.trimmed.fq.gz \
+  ${STAGING_OUT}/${SAMPLE}_2.paired.trimmed.fq.gz \
+  ${STAGING_OUT}/${SAMPLE}_2.unpaired.trimmed.fq.gz \
+  ILLUMINACLIP:${STAGING_IN}/TruSeq3-PE.fa:2:30:10 \
+  LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36
+
+TRIM_STATUS=$?
+if [ $TRIM_STATUS -ne 0 ]; then
+  echo "ERROR: Trimmomatic failed"
+  exit 1
+fi
+
+rm ${STAGING_OUT}/${SAMPLE}_1.unpaired.trimmed.fq.gz ${STAGING_OUT}/${SAMPLE}_2.unpaired.trimmed.fq.gz
+mv ${STAGING_OUT}/${SAMPLE}_1.paired.trimmed.fq.gz ${STAGING_OUT}/${SAMPLE}_1.trimmed.fq.gz
+mv ${STAGING_OUT}/${SAMPLE}_2.paired.trimmed.fq.gz ${STAGING_OUT}/${SAMPLE}_2.trimmed.fq.gz
+
+echo "✓ Trimming complete for $SAMPLE"
+EOF
+
+
+## And update Trim_test.sub back to
+cat > Trim_test.sub << 'EOF'
+universe = container
+container_image = osdf:///chtc/staging/c/ccaguilar/trimmomatic.sif
+
+executable = Trim.sh
+arguments = $(sample)
+
+log = trim_test_$(Cluster)_$(Process).log
+error = trim_test_$(Cluster)_$(Process).err
+output = trim_test_$(Cluster)_$(Process).out
+
+transfer_input_files = test_sample.txt
+transfer_output_files = ""
+
+request_cpus = 8
+request_memory = 32GB
+request_disk = 50GB
+
+queue sample from test_sample.txt
+EOF
+
+## SUBMIT 
+
+condor_submit Trim_test.sub
+
+## Once it finishes, check
+ls -la /staging/c/ccaguilar/trimmed/
+
+## looping
+
+cat > listOfSamples_batch1.txt << 'EOF'
+A1 
+A2
+A3
+EOF
+
+cat > Trim.sub << 'EOF'
+universe = container
+container_image = osdf:///chtc/staging/c/ccaguilar/trimmomatic.sif
+
+executable = Trim.sh
+arguments = $(sample)
+
+log = trim_$(Cluster)_$(Process).log
+error = trim_$(Cluster)_$(Process).err
+output = trim_$(Cluster)_$(Process).out
+
+transfer_input_files = listOfSamples_batch1.txt
+transfer_output_files = ""
+
+request_cpus = 8
+request_memory = 32GB
+request_disk = 50GB
+
+queue sample from listOfSamples_batch1.txt
+EOF
