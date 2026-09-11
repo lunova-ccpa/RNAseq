@@ -1,0 +1,18 @@
+# ======================================================================================
+# STEP 2: Align with HISAT2
+# ======================================================================================
+INDEX_PREFIX="$1"
+SAMPLE="$2"
+echo ""
+echo "[STEP 2] Running HISAT2 alignment..."
+echo "Command: hisat2 -x ${INDEX_PREFIX} -1 ${SAMPLE}_1.trimmed.fq.gz -2 ${SAMPLE}_2.trimmed.fq.gz -S ${SAMPLE}.sam -p 8"
+
+hisat2 -x ${INDEX_PREFIX} \
+  -1 ${SAMPLE}_1.trimmed.fq.gz \
+  -2 ${SAMPLE}_2.trimmed.fq.gz \
+  -S ${SAMPLE}.sam \
+  -p 8
+
+ALIGN_STATUS=$?
+echo "HISAT2 alignment completed with status: $ALIGN_STATUS"
+
