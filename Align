@@ -16,3 +16,93 @@ hisat2 -x ${INDEX_PREFIX} \
 ALIGN_STATUS=$?
 echo "HISAT2 alignment completed with status: $ALIGN_STATUS"
 
+
+# =========================================================================================
+# STEP 3: Convert SAM to BAM
+# =========================================================================================
+
+echo ""
+echo "[STEP 3] Converting SAM to BAM..."
+echo "Command: samtools view -bS ${SAMPLE}.sam -o ${SAMPLE}.bam"
+
+samtools view -bS ${SAMPLE}.sam -o ${SAMPLE}.bam
+
+# Remove SAM file to save space
+rm -f ${SAMPLE}.sam
+echo "SAM→BAM conversion complete. Removed SAM file."
+
+# =========================================================================================
+# STEP 4: Sort BAM
+# =========================================================================================
+
+echo ""
+echo "[STEP 4] Sorting BAM file..."
+echo "Command: samtools sort -@ ${NUM_THREADS} -o ${SAMPLE}.sorted.bam ${SAMPLE}.bam"
+
+samtools sort -@ ${NUM_THREADS} -o ${SAMPLE}.sorted.bam ${SAMPLE}.bam
+
+# Remove unsorted BAM
+rm -f ${SAMPLE}.bam
+echo "BAM sorting complete."
+
+# =========================================================================================
+# STEP 5: Index BAM
+# =========================================================================================
+
+echo ""
+echo "[STEP 5] Indexing sorted BAM..."
+echo "Command: samtools index ${SAMPLE}.sorted.bam"
+
+samtools index ${SAMPLE}.sorted.bam
+echo "BAM indexing complete."
+
+# =========================================================================================
+# STEP 6: featureCounts Gene Counting
+# =========================================================================================
+
+echo ""
+echo "[STEP 6] Running featureCounts..."
+echo "Command: featureCounts -T ${NUM_THREADS} -p -a Mus_musculus.GRCm39.112.gtf -o ${SAMPLE}_counts.txt ${SAMPLE}.sorted.bam"
+
+featureCounts -T ${NUM_THREADS} \
+  -p \
+  -a Mus_musculus.GRCm39.112.gtf \
+  -o ${SAMPLE}_counts.txt \
+  ${SAMPLE}.sorted.bam
+
+echo "featureCounts complete."
+
+# =========================================================================================
+# STEP 7: Move Results to Staging Output
+# =========================================================================================
+
+echo ""
+echo "[STEP 7] Moving results to staging output area..."
+echo "Destination: ${STAGING_OUT}/${SAMPLE}/"
+
+# Create output directory if it doesn't exist
+mkdir -p ${STAGING_OUT}/${SAMPLE}/
+
+# Move all output files
+mv ${SAMPLE}.sorted.bam ${STAGING_OUT}/${SAMPLE}/
+mv ${SAMPLE}.sorted.bam.bai ${STAGING_OUT}/${SAMPLE}/
+mv ${SAMPLE}_counts.txt ${STAGING_OUT}/${SAMPLE}/
+mv ${SAMPLE}_counts.txt.summary ${STAGING_OUT}/${SAMPLE}/
+mv ${SAMPLE}_fastp.json ${STAGING_OUT}/${SAMPLE}/
+mv ${SAMPLE}_fastp.html ${STAGING_OUT}/${SAMPLE}/
+
+echo "✓ All results moved to staging output"
+
+# =========================================================================================
+# Summary
+# =========================================================================================
+
+echo ""
+echo "=========================================="
+echo "Complete pipeline finished for $SAMPLE"
+echo ""
+echo "Output files in: ${STAGING_OUT}/${SAMPLE}/"
+ls -lh ${STAGING_OUT}/${SAMPLE}/
+echo ""
+echo "All steps complete!"
+echo "=========================================="
