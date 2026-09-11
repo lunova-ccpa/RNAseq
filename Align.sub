@@ -1,0 +1,22 @@
+cat > Align.sub << 'EOF'
+# HISAT2 alignment + featureCounts submission
+
+universe = container
+container_image = osdf:///chtc/staging/c/ccaguilar/hisat2_align.sif
+
+executable = Align.sh
+arguments = mm39 $(sample)
+
+log = align_$(Cluster)_$(Process).log
+error = align_$(Cluster)_$(Process).err
+output = align_$(Cluster)_$(Process).out
+
+transfer_input_files = listOfSamples.txt
+transfer_output_files = ""
+
+request_cpus = 8
+request_memory = 32GB
+request_disk = 100GB
+
+queue sample from listOfSamples.txt
+EOF
