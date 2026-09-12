@@ -67,18 +67,24 @@ condor_submit Trim_test.sub
 ## Once it finishes, check
 ls -la /staging/c/ccaguilar/trimmed/
 
-## looping ##
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+## Looping
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+
 
 # Step 1
-
-cat > listOfSamples_batch5.txt << 'EOF'
-A11
-A12
-A13
-A14
+----------------------------------------------------------------------------------------------------
+cat > listOfSamples_batch6.txt << 'EOF'
+A15
+A16
+A17
+A18
 EOF
 
 ## Step 2
+----------------------------------------------------------------------------------------------------
 
 cat > Trim.sub << 'EOF'
 universe = container
@@ -91,16 +97,17 @@ log = trim_$(Cluster)_$(Process).log
 error = trim_$(Cluster)_$(Process).err
 output = trim_$(Cluster)_$(Process).out
 
-transfer_input_files = listOfSamples_batch5.txt
+transfer_input_files = listOfSamples_batch6.txt
 transfer_output_files = ""
 
 request_cpus = 8
 request_memory = 32GB
 request_disk = 50GB
 
-queue sample from listOfSamples_batch5.txt
+queue sample from listOfSamples_batch6.txt
 EOF
 
-## Step 3 
 
+## Step 3 
+----------------------------------------------------------------------------------------------------
 condor_submit Trim.sub
